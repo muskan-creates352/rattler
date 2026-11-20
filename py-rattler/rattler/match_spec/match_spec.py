@@ -8,7 +8,8 @@ from rattler.rattler import PyMatchSpec
 
 if TYPE_CHECKING:
     from rattler.match_spec import NamelessMatchSpec
-    from rattler.repo_data import PackageRecord
+    from rattler.prefix.prefix_record import PrefixRecord
+    from rattler.repo_data import PackageRecord, RepoDataRecord
 
 
 class MatchSpec:
@@ -243,8 +244,8 @@ class MatchSpec:
 
         return match_spec
 
-    def matches(self, record: PackageRecord) -> bool:
-        """Match a MatchSpec against a PackageRecord."""
+    def matches(self, record: PackageRecord | RepoDataRecord | PrefixRecord) -> bool:
+        """Match a MatchSpec against a PackageRecord, RepoDataRecord, or PrefixRecord."""
         return self._match_spec.matches(record._record)
 
     @classmethod

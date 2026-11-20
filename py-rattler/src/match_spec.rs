@@ -6,7 +6,8 @@ use rattler_conda_types::{Channel, MatchSpec, Matches, PackageNameMatcher, Parse
 
 use crate::{
     channel::PyChannel, error::PyRattlerError, nameless_match_spec::PyNamelessMatchSpec,
-    package_name_matcher::PyPackageNameMatcher, record::PyRecord,
+    package_name_matcher::PyPackageNameMatcher,
+    record::{PyRecord, RecordInner},
 };
 
 #[pyclass(from_py_object)]
@@ -169,9 +170,14 @@ impl PyMatchSpec {
         format!("{}", self.inner)
     }
 
-    /// Matches a `MatchSpec` against a `PackageRecord`
+    /// Matches a `MatchSpec` against a `PackageRecord`, `RepoDataRecord`, or `PrefixRecord`
     pub fn matches(&self, record: &PyRecord) -> bool {
-        self.inner.matches(record.as_package_record())
+        match &record.inner {
+            RecordInner::Package(p) => self.inner.matches(p.as_ref()),
+            RecordInner::RepoData(r) => self.inner.matches(r.as_ref()),
+            RecordInner::Prefix(p) => self.inner.matches(&p.repodata_record),
+            RecordInner::Whl(w) => self.inner.matches(&w.package_record),
+        }
     }
 
     /// Constructs a `PyMatchSpec` from a `PyNamelessMatchSpec` and a name.

@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pytest
 
-from rattler import MatchSpec, NamelessMatchSpec
+from rattler import BuildString, MatchSpec, NamelessMatchSpec, PackageRecord, RepoDataRecord
 
 
 def test_parse_channel_from_canonical_name() -> None:
@@ -150,3 +152,26 @@ def test_extras_and_condition_none_by_default() -> None:
     assert m.version == ">=1.20"
     assert m.extras is None
     assert m.condition is None
+
+
+def test_matches_subdir() -> None:
+    record = PackageRecord(name="foo", version="1.0", build=BuildString("0"), build_number=0, subdir="linux-64")
+    spec_matching = MatchSpec("foo[subdir=linux-64]")
+    spec_mismatch = MatchSpec("foo[subdir=win-64]")
+    assert spec_matching.matches(record)
+    assert not spec_mismatch.matches(record)
+
+    nms_matching = NamelessMatchSpec("1.0[subdir=linux-64]")
+    nms_mismatch = NamelessMatchSpec("1.0[subdir=win-64]")
+    assert nms_matching.matches(record)
+    assert not nms_mismatch.matches(record)
+
+
+@pytest.mark.asyncio
+async def test_matches_repodata_record(test_data_dir: str) -> None:
+    path = Path(test_data_dir) / "clobber" / "clobber-fd-1-0.1.0-h4616a5c_0.conda"
+    record = await RepoDataRecord.from_package_archive(path)
+    spec_exact_fn = MatchSpec('clobber-fd-1[fn="clobber-fd-1-0.1.0-h4616a5c_0.conda"]')
+    spec_diff_fn = MatchSpec('clobber-fd-1[fn="clobber-fd-1-0.1.0-h4616a5c_0.tar.bz2"]')
+    assert spec_exact_fn.matches(record)
+    assert not spec_diff_fn.matches(record)

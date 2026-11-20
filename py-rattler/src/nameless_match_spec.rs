@@ -3,7 +3,12 @@ use std::sync::Arc;
 use pyo3::{Bound, PyResult, Python, pyclass, pymethods, types::PyBytes};
 use rattler_conda_types::{Channel, MatchSpec, Matches, NamelessMatchSpec, ParseMatchSpecOptions};
 
-use crate::{channel::PyChannel, error::PyRattlerError, match_spec::PyMatchSpec, record::PyRecord};
+use crate::{
+    channel::PyChannel,
+    error::PyRattlerError,
+    match_spec::PyMatchSpec,
+    record::{PyRecord, RecordInner},
+};
 
 #[pyclass(from_py_object)]
 #[repr(transparent)]
@@ -149,9 +154,14 @@ impl PyNamelessMatchSpec {
         format!("{}", self.inner)
     }
 
-    /// Match a `PyNamelessMatchSpec` against a `PackageRecord`
+    /// Match a `PyNamelessMatchSpec` against a `PackageRecord`, `RepoDataRecord`, or `PrefixRecord`
     pub fn matches(&self, record: &PyRecord) -> bool {
-        self.inner.matches(&record.as_package_record().clone())
+        match &record.inner {
+            RecordInner::Package(p) => self.inner.matches(p.as_ref()),
+            RecordInner::RepoData(r) => self.inner.matches(r.as_ref()),
+            RecordInner::Prefix(p) => self.inner.matches(&p.repodata_record),
+            RecordInner::Whl(w) => self.inner.matches(&w.package_record),
+        }
     }
 
     /// Constructs a [`PyNamelessMatchSpec`] from a [`PyMatchSpec`].

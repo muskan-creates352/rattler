@@ -7,7 +7,8 @@ from rattler.rattler import PyNamelessMatchSpec
 
 if TYPE_CHECKING:
     from rattler.match_spec import MatchSpec
-    from rattler.repo_data import PackageRecord
+    from rattler.prefix.prefix_record import PrefixRecord
+    from rattler.repo_data import PackageRecord, RepoDataRecord
 
 
 class NamelessMatchSpec:
@@ -131,11 +132,11 @@ class NamelessMatchSpec:
         """The condition under which this match spec applies."""
         return self._nameless_match_spec.condition
 
-    def matches(self, package_record: PackageRecord) -> bool:
+    def matches(self, record: PackageRecord | RepoDataRecord | PrefixRecord) -> bool:
         """
-        Match a MatchSpec against a PackageRecord
+        Match a MatchSpec against a PackageRecord, RepoDataRecord, or PrefixRecord
         """
-        return self._nameless_match_spec.matches(package_record._record)
+        return self._nameless_match_spec.matches(record._record)
 
     @classmethod
     def _from_py_nameless_match_spec(cls, py_nameless_match_spec: PyNamelessMatchSpec) -> NamelessMatchSpec:

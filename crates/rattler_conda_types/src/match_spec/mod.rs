@@ -483,6 +483,12 @@ impl Matches<PackageRecord> for NamelessMatchSpec {
             }
         }
 
+        if let Some(subdir) = self.subdir.as_ref()
+            && subdir != &other.subdir
+        {
+            return false;
+        }
+
         true
     }
 }
@@ -556,6 +562,12 @@ impl Matches<PackageRecord> for MatchSpec {
             }
         }
 
+        if let Some(subdir) = self.subdir.as_ref()
+            && subdir != &other.subdir
+        {
+            return false;
+        }
+
         true
     }
 }
@@ -565,6 +577,12 @@ impl Matches<RepoDataRecord> for MatchSpec {
     fn matches(&self, other: &RepoDataRecord) -> bool {
         if let Some(url_spec) = self.url.as_ref()
             && url_spec != &other.url
+        {
+            return false;
+        }
+
+        if let Some(file_name) = self.file_name.as_ref()
+            && file_name != &other.identifier.to_file_name()
         {
             return false;
         }
@@ -582,6 +600,12 @@ impl Matches<RepoDataRecord> for NamelessMatchSpec {
     fn matches(&self, other: &RepoDataRecord) -> bool {
         if let Some(url_spec) = self.url.as_ref()
             && url_spec != &other.url
+        {
+            return false;
+        }
+
+        if let Some(file_name) = self.file_name.as_ref()
+            && file_name != &other.identifier.to_file_name()
         {
             return false;
         }
@@ -1058,6 +1082,37 @@ mod tests {
         assert!(!match_spec.matches(&package_record_no_license));
         assert!(!nameless_spec.matches(&repodata_record_no_license));
         assert!(!nameless_spec.matches(&package_record_no_license));
+
+        // Test subdir matches
+        let match_spec = MatchSpec::from_str(
+            &format!("mamba[subdir={}]", repodata_record.package_record.subdir),
+            Strict,
+        )
+        .unwrap();
+        let nameless_spec = match_spec.clone().into_nameless().1;
+        assert!(match_spec.matches(&repodata_record));
+        assert!(match_spec.matches(&package_record));
+        assert!(nameless_spec.matches(&repodata_record));
+        assert!(nameless_spec.matches(&package_record));
+
+        let match_spec = MatchSpec::from_str("mamba[subdir=nonexistent-arch]", Strict).unwrap();
+        let nameless_spec = match_spec.clone().into_nameless().1;
+        assert!(!match_spec.matches(&repodata_record));
+        assert!(!match_spec.matches(&package_record));
+        assert!(!nameless_spec.matches(&repodata_record));
+        assert!(!nameless_spec.matches(&package_record));
+
+        // Test file_name (fn) matches
+        let match_spec = MatchSpec::from_str("mamba[fn='mamba-1.0-py37_0.conda']", Strict).unwrap();
+        let nameless_spec = match_spec.clone().into_nameless().1;
+        assert!(match_spec.matches(&repodata_record));
+        assert!(nameless_spec.matches(&repodata_record));
+
+        let match_spec =
+            MatchSpec::from_str("mamba[fn='mamba-1.0-py37_0.tar.bz2']", Strict).unwrap();
+        let nameless_spec = match_spec.clone().into_nameless().1;
+        assert!(!match_spec.matches(&repodata_record));
+        assert!(!nameless_spec.matches(&repodata_record));
     }
 
     #[test]
